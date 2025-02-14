@@ -349,6 +349,10 @@ interface TestProject<TestArgs = {}, WorkerArgs = {}> {
 
   /**
    * Project name is visible in the report and during test execution.
+   *
+   * **NOTE** Playwright executes the configuration file multiple times. Do not dynamically produce non-stable values in
+   * your configuration.
+   *
    */
   name?: string;
 
@@ -367,7 +371,7 @@ interface TestProject<TestArgs = {}, WorkerArgs = {}> {
    *
    * ```js
    * import { test, expect } from '@playwright/test';
-   * import fs from 'fs';
+   * import * as fs from 'fs';
    *
    * test('example test', async ({}, testInfo) => {
    *   const file = testInfo.outputPath('temporary-file.txt');
@@ -1345,7 +1349,7 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    *
    * ```js
    * import { test, expect } from '@playwright/test';
-   * import fs from 'fs';
+   * import * as fs from 'fs';
    *
    * test('example test', async ({}, testInfo) => {
    *   const file = testInfo.outputPath('temporary-file.txt');
@@ -1362,6 +1366,8 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    * and CI/CD information.
    *
    * This information will appear in the HTML and JSON reports and is available in the Reporter API.
+   *
+   * On Github Actions, this feature is enabled by default.
    *
    * **Usage**
    *
@@ -5811,7 +5817,7 @@ export interface TestType<TestArgs extends {}, WorkerArgs extends {}> {
    * @param body Step body.
    * @param options
    */
-  <T>(title: string, body: () => T | Promise<T>, options?: { box?: boolean, location?: Location, timeout?: number }): Promise<T>;
+  <T>(title: string, body: (step: TestStepInfo) => T | Promise<T>, options?: { box?: boolean, location?: Location, timeout?: number }): Promise<T>;
     /**
    * Mark a test step as "skip" to temporarily disable its execution, useful for steps that are currently failing and
    * planned for a near-term fix. Playwright will not run the step.
@@ -5835,7 +5841,7 @@ export interface TestType<TestArgs extends {}, WorkerArgs extends {}> {
    * @param body Step body.
    * @param options
    */
-  skip(title: string, body: () => any | Promise<any>, options?: { box?: boolean, location?: Location, timeout?: number }): Promise<void>;
+  skip(title: string, body: (step: TestStepInfo) => any | Promise<any>, options?: { box?: boolean, location?: Location, timeout?: number }): Promise<void>;
   }
   /**
    * `expect` function can be used to create test assertions. Read more about [test assertions](https://playwright.dev/docs/test-assertions).
@@ -6184,6 +6190,27 @@ export interface PlaywrightWorkerOptions {
    */
   screenshot: ScreenshotMode | { mode: ScreenshotMode } & Pick<PageScreenshotOptions, 'fullPage' | 'omitBackground'>;
   /**
+   * Whether to automatically capture a ARIA snapshot of the page after each test. Defaults to `'only-on-failure'`.
+   * - `'off'`: Do not capture page snapshots.
+   * - `'on'`: Capture page snapshot after each test.
+   * - `'only-on-failure'`: Capture page snapshot after each test failure.
+   *
+   * **Usage**
+   *
+   * ```js
+   * // playwright.config.ts
+   * import { defineConfig } from '@playwright/test';
+   *
+   * export default defineConfig({
+   *   use: {
+   *     pageSnapshot: 'on',
+   *   },
+   * });
+   * ```
+   *
+   */
+  pageSnapshot: PageSnapshotMode;
+  /**
    * Whether to record trace for each test. Defaults to `'off'`.
    * - `'off'`: Do not record trace.
    * - `'on'`: Record trace for each test.
@@ -6242,6 +6269,7 @@ export interface PlaywrightWorkerOptions {
 }
 
 export type ScreenshotMode = 'off' | 'on' | 'only-on-failure' | 'on-first-failure';
+export type PageSnapshotMode = 'off' | 'on' | 'only-on-failure';
 export type TraceMode = 'off' | 'on' | 'retain-on-failure' | 'on-first-retry' | 'on-all-retries' | 'retain-on-first-failure';
 export type VideoMode = 'off' | 'on' | 'retain-on-failure' | 'on-first-retry';
 
@@ -9187,7 +9215,7 @@ export interface TestInfo {
    *
    * ```js
    * import { test, expect } from '@playwright/test';
-   * import fs from 'fs';
+   * import * as fs from 'fs';
    *
    * test('example test', async ({}, testInfo) => {
    *   const file = testInfo.outputPath('dir', 'temporary-file.txt');
@@ -9551,6 +9579,105 @@ export interface TestInfoError {
    * The value that was thrown. Set when anything except the [Error] (or its subclass) has been thrown.
    */
   value?: string;
+}
+
+/**
+ * `TestStepInfo` contains information about currently running test step. It is passed as an argument to the step
+ * function. `TestStepInfo` provides utilities to control test step execution.
+ *
+ * ```js
+ * import { test, expect } from '@playwright/test';
+ *
+ * test('basic test', async ({ page, browserName }, TestStepInfo) => {
+ *   await test.step('check some behavior', async step => {
+ *     await step.skip(browserName === 'webkit', 'The feature is not available in WebKit');
+ *     // ... rest of the step code
+ *     await page.check('input');
+ *   });
+ * });
+ * ```
+ *
+ */
+export interface TestStepInfo {
+  /**
+   * Attach a value or a file from disk to the current test step. Some reporters show test step attachments. Either
+   * [`path`](https://playwright.dev/docs/api/class-teststepinfo#test-step-info-attach-option-path) or
+   * [`body`](https://playwright.dev/docs/api/class-teststepinfo#test-step-info-attach-option-body) must be specified,
+   * but not both. Calling this method will attribute the attachment to the step, as opposed to
+   * [testInfo.attach(name[, options])](https://playwright.dev/docs/api/class-testinfo#test-info-attach) which stores
+   * all attachments at the test level.
+   *
+   * For example, you can attach a screenshot to the test step:
+   *
+   * ```js
+   * import { test, expect } from '@playwright/test';
+   *
+   * test('basic test', async ({ page }) => {
+   *   await page.goto('https://playwright.dev');
+   *   await test.step('check page rendering', async step => {
+   *     const screenshot = await page.screenshot();
+   *     await step.attach('screenshot', { body: screenshot, contentType: 'image/png' });
+   *   });
+   * });
+   * ```
+   *
+   * Or you can attach files returned by your APIs:
+   *
+   * ```js
+   * import { test, expect } from '@playwright/test';
+   * import { download } from './my-custom-helpers';
+   *
+   * test('basic test', async ({}) => {
+   *   await test.step('check download behavior', async step => {
+   *     const tmpPath = await download('a');
+   *     await step.attach('downloaded', { path: tmpPath });
+   *   });
+   * });
+   * ```
+   *
+   * **NOTE**
+   * [testStepInfo.attach(name[, options])](https://playwright.dev/docs/api/class-teststepinfo#test-step-info-attach)
+   * automatically takes care of copying attached files to a location that is accessible to reporters. You can safely
+   * remove the attachment after awaiting the attach call.
+   *
+   * @param name Attachment name. The name will also be sanitized and used as the prefix of file name when saving to disk.
+   * @param options
+   */
+  attach(name: string, options?: {
+    /**
+     * Attachment body. Mutually exclusive with
+     * [`path`](https://playwright.dev/docs/api/class-teststepinfo#test-step-info-attach-option-path).
+     */
+    body?: string|Buffer;
+
+    /**
+     * Content type of this attachment to properly present in the report, for example `'application/json'` or
+     * `'image/png'`. If omitted, content type is inferred based on the
+     * [`path`](https://playwright.dev/docs/api/class-teststepinfo#test-step-info-attach-option-path), or defaults to
+     * `text/plain` for [string] attachments and `application/octet-stream` for [Buffer] attachments.
+     */
+    contentType?: string;
+
+    /**
+     * Path on the filesystem to the attached file. Mutually exclusive with
+     * [`body`](https://playwright.dev/docs/api/class-teststepinfo#test-step-info-attach-option-body).
+     */
+    path?: string;
+  }): Promise<void>;
+
+  /**
+   * Unconditionally skip the currently running step. Test step is immediately aborted. This is similar to
+   * [test.step.skip(title, body[, options])](https://playwright.dev/docs/api/class-test#test-step-skip).
+   */
+  skip(): void;
+
+  /**
+   * Conditionally skips the currently running step with an optional description. This is similar to
+   * [test.step.skip(title, body[, options])](https://playwright.dev/docs/api/class-test#test-step-skip).
+   * @param condition A skip condition. Test step is skipped when the condition is `true`.
+   * @param description Optional description that will be reflected in a test report.
+   */
+  skip(condition: boolean, description?: string): void;
 }
 
 /**

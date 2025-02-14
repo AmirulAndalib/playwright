@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { httpRequest } from '../../utils/network';
-import { ManualPromise } from '../../utils/manualPromise';
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { ManualPromise } from '../../utils/isomorphic/manualPromise';
+import { httpRequest } from '../utils/network';
 import { extract } from '../../zipBundle';
 
 export type DownloadParams = {

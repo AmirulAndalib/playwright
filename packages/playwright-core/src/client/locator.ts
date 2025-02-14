@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-import type * as structs from '../../types/structs';
-import type * as api from '../../types/types';
-import type * as channels from '@protocol/channels';
-import * as util from 'util';
-import { asLocator, isString, monotonicTime } from '../utils';
 import { ElementHandle } from './elementHandle';
+import { parseResult, serializeArgument } from './jsHandle';
+import { asLocator } from '../utils/isomorphic/locatorGenerators';
+import { getByAltTextSelector, getByLabelSelector, getByPlaceholderSelector, getByRoleSelector, getByTestIdSelector, getByTextSelector, getByTitleSelector } from '../utils/isomorphic/locatorUtils';
+import { escapeForTextSelector } from '../utils/isomorphic/stringUtils';
+import { isString } from '../utils/isomorphic/rtti';
+import { monotonicTime } from '../utils/isomorphic/time';
+
 import type { Frame } from './frame';
 import type { FilePayload, FrameExpectParams, Rect, SelectOption, SelectOptionOptions, TimeoutOptions } from './types';
-import { parseResult, serializeArgument } from './jsHandle';
-import { escapeForTextSelector } from '../utils/isomorphic/stringUtils';
+import type * as structs from '../../types/structs';
+import type * as api from '../../types/types';
 import type { ByRoleOptions } from '../utils/isomorphic/locatorUtils';
-import { getByAltTextSelector, getByLabelSelector, getByPlaceholderSelector, getByRoleSelector, getByTestIdSelector, getByTextSelector, getByTitleSelector } from '../utils/isomorphic/locatorUtils';
+import type * as channels from '@protocol/channels';
+
 
 export type LocatorOptions = {
   hasText?: string | RegExp;
@@ -61,6 +64,9 @@ export class Locator implements api.Locator {
         throw new Error(`Inner "hasNot" locator must belong to the same frame.`);
       this._selector += ` >> internal:has-not=` + JSON.stringify(locator._selector);
     }
+
+    if (this._frame._platform.inspectCustom)
+      (this as any)[this._frame._platform.inspectCustom] = () => this._inspect();
   }
 
   private async _withElement<R>(task: (handle: ElementHandle<SVGElement | HTMLElement>, timeout?: number) => Promise<R>, timeout?: number): Promise<R> {
@@ -288,8 +294,9 @@ export class Locator implements api.Locator {
     return await this._frame.press(this._selector, key, { strict: true, ...options });
   }
 
-  async screenshot(options: Omit<channels.ElementHandleScreenshotOptions, 'mask'> & { path?: string, mask?: Locator[] } = {}): Promise<Buffer> {
-    return await this._withElement((h, timeout) => h.screenshot({ ...options, timeout }), options.timeout);
+  async screenshot(options: Omit<channels.ElementHandleScreenshotOptions, 'mask'> & { path?: string, mask?: api.Locator[] } = {}): Promise<Buffer> {
+    const mask = options.mask as Locator[] | undefined;
+    return await this._withElement((h, timeout) => h.screenshot({ ...options, mask, timeout }), options.timeout);
   }
 
   async ariaSnapshot(options?: { _id?: boolean, _mode?: 'raw' | 'regex' } & TimeoutOptions): Promise<string> {
@@ -367,7 +374,7 @@ export class Locator implements api.Locator {
     return result;
   }
 
-  [util.inspect.custom]() {
+  private _inspect() {
     return this.toString();
   }
 

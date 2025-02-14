@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-import path from 'path';
+import * as path from 'path';
+
 import { createGuid } from 'playwright-core/lib/utils';
+
+import { serializeRegexPatterns } from '../isomorphic/teleReceiver';
+
+import type { ReporterV2 } from './reporterV2';
 import type * as reporterTypes from '../../types/testReporter';
 import type * as teleReceiver from '../isomorphic/teleReceiver';
-import { serializeRegexPatterns } from '../isomorphic/teleReceiver';
-import type { ReporterV2 } from './reporterV2';
 
 export type TeleReporterEmitterOptions = {
   omitOutput?: boolean;
@@ -256,7 +259,8 @@ export class TeleReporterEmitter implements ReporterV2 {
       id: (step as any)[this._idSymbol],
       duration: step.duration,
       error: step.error,
-      attachments: step.attachments.map(a => result.attachments.indexOf(a)),
+      attachments: step.attachments.length ? step.attachments.map(a => result.attachments.indexOf(a)) : undefined,
+      annotations: step.annotations.length ? step.annotations : undefined,
     };
   }
 

@@ -59,7 +59,7 @@ test('should stop tracing with trace: on-first-retry, when not retrying', async 
 test('should record api trace', async ({ runInlineTest, server }, testInfo) => {
   const result = await runInlineTest({
     'playwright.config.ts': `
-      module.exports = { use: { trace: 'on' } };
+      module.exports = { use: { trace: 'on', pageSnapshot: 'off' } };
     `,
     'a.spec.ts': `
       import { test, expect } from '@playwright/test';
@@ -290,7 +290,7 @@ test('should work in serial mode', async ({ runInlineTest }, testInfo) => {
 test('should not override trace file in afterAll', async ({ runInlineTest, server }, testInfo) => {
   const result = await runInlineTest({
     'playwright.config.ts': `
-      module.exports = { use: { trace: 'retain-on-failure' } };
+      module.exports = { use: { trace: 'retain-on-failure', pageSnapshot: 'off' } };
     `,
     'a.spec.ts': `
       import { test, expect } from '@playwright/test';
@@ -642,7 +642,7 @@ test('should expand expect.toPass', async ({ runInlineTest }, testInfo) => {
 test('should show non-expect error in trace', async ({ runInlineTest }, testInfo) => {
   const result = await runInlineTest({
     'playwright.config.ts': `
-      module.exports = { use: { trace: { mode: 'on' } } };
+      module.exports = { use: { trace: { mode: 'on' }, pageSnapshot: 'off' } };
     `,
     'a.spec.ts': `
       import { test, expect } from '@playwright/test';
@@ -761,7 +761,7 @@ test('should not throw when screenshot on failure fails', async ({ runInlineTest
   expect(result.exitCode).toBe(0);
   expect(result.passed).toBe(1);
   const trace = await parseTrace(testInfo.outputPath('test-results', 'a-has-download-page', 'trace.zip'));
-  const attachedScreenshots = trace.actions.flatMap(a => a.attachments);
+  const attachedScreenshots = trace.actions.filter(a => a.attachments).flatMap(a => a.attachments);
   // One screenshot for the page, no screenshot for the download page since it should have failed.
   expect(attachedScreenshots.length).toBe(1);
 });
@@ -850,7 +850,7 @@ test('should record nested steps, even after timeout', async ({ runInlineTest },
   const result = await runInlineTest({
     'playwright.config.ts': `
       module.exports = {
-        use: { trace: { mode: 'on' } },
+        use: { trace: { mode: 'on' }, pageSnapshot: 'off' },
         timeout: 5000,
       };
     `,
@@ -1156,6 +1156,9 @@ test('should record trace for manually created context in a failed test', async 
   test.info().annotations.push({ type: 'issue', description: 'https://github.com/microsoft/playwright/issues/31541' });
 
   const result = await runInlineTest({
+    'playwright.config.ts': `
+      module.exports = { use: { pageSnapshot: 'off' } };
+    `,
     'a.spec.ts': `
       import { test, expect } from '@playwright/test';
       test('fail', async ({ browser }) => {
@@ -1234,6 +1237,9 @@ test('should record trace after fixture teardown timeout', {
   annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/30718' },
 }, async ({ runInlineTest }) => {
   const result = await runInlineTest({
+    'playwright.config.ts': `
+      module.exports = { use: { pageSnapshot: 'off' } };
+    `,
     'a.spec.ts': `
       import { test as base, expect } from '@playwright/test';
       const test = base.extend({

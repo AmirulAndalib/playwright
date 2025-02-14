@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-import os from 'os';
-import path from 'path';
-import { assert, wrapInASCIIBox } from '../../utils';
-import type { Env } from '../../utils/processLauncher';
-import type { BrowserOptions } from '../browser';
+import * as os from 'os';
+import * as path from 'path';
+
+import { assert } from '../../utils';
+import { wrapInASCIIBox } from '../utils/ascii';
 import { BrowserReadyState, BrowserType, kNoXServerRunningError } from '../browserType';
-import type { SdkObject } from '../instrumentation';
-import type { ProtocolError } from '../protocolError';
-import type { ConnectionTransport } from '../transport';
-import type * as types from '../types';
 import { BidiBrowser } from './bidiBrowser';
 import { kBrowserCloseMessageId } from './bidiConnection';
 import { createProfile } from './third_party/firefoxPrefs';
+
+import type { BrowserOptions } from '../browser';
+import type { SdkObject } from '../instrumentation';
+import type { Env } from '../utils/processLauncher';
+import type { ProtocolError } from '../protocolError';
+import type { ConnectionTransport } from '../transport';
+import type * as types from '../types';
+
 
 export class BidiFirefox extends BrowserType {
   constructor(parent: SdkObject) {

@@ -21,5 +21,10 @@ export interface GitCommitInfo {
   'revision.subject'?: string;
   'revision.timestamp'?: number | Date;
   'revision.link'?: string;
+  'revision.diff'?: string;
+  'pull.link'?: string;
+  'pull.diff'?: string;
+  'pull.base'?: string;
+  'pull.title'?: string;
   'ci.link'?: string;
 }

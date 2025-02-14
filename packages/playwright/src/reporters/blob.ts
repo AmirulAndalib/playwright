@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { ManualPromise, calculateSha1, createGuid, getUserAgent, removeFolders, sanitizeForFilePath } from 'playwright-core/lib/utils';
-import { mime } from 'playwright-core/lib/utilsBundle';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Readable } from 'stream';
-import type { EventEmitter } from 'events';
+
+import { removeFolders, sanitizeForFilePath } from 'playwright-core/lib/utils';
+import { ManualPromise, calculateSha1, createGuid, getUserAgent } from 'playwright-core/lib/utils';
+import { mime } from 'playwright-core/lib/utilsBundle';
+import { yazl } from 'playwright-core/lib/zipBundle';
+
+import { resolveOutputFile } from './base';
+import { TeleReporterEmitter } from './teleEmitter';
+
 import type { FullConfig, FullResult, TestResult } from '../../types/testReporter';
 import type { JsonAttachment, JsonEvent } from '../isomorphic/teleReceiver';
-import { TeleReporterEmitter } from './teleEmitter';
-import { yazl } from 'playwright-core/lib/zipBundle';
-import { resolveOutputFile } from './base';
+import type { EventEmitter } from 'events';
 
 type BlobReporterOptions = {
   configDir: string;

@@ -259,11 +259,30 @@ Specify environment variables that will be visible to the browser. Defaults to `
     - `httpOnly` <[boolean]>
     - `secure` <[boolean]>
     - `sameSite` <[SameSiteAttribute]<"Strict"|"Lax"|"None">> sameSite flag
-  - `origins` <[Array]<[Object]>> localStorage to set for context
+  - `origins` <[Array]<[Object]>>
     - `origin` <[string]>
-    - `localStorage` <[Array]<[Object]>>
+    - `localStorage` <[Array]<[Object]>> localStorage to set for context
       - `name` <[string]>
       - `value` <[string]>
+    - `indexedDB` ?<[Array]<[Object]>> indexedDB to set for context
+      - `name` <[string]> database name
+      - `version` <[int]> database version
+      - `stores` <[Array]<[Object]>>
+        - `name` <[string]>
+        - `keyPath` ?<[string]>
+        - `keyPathArray` ?<[Array]<[string]>>
+        - `autoIncrement` <[boolean]>
+        - `indexes` <[Array]<[Object]>>
+          - `name` <[string]>
+          - `keyPath` ?<[string]>
+          - `keyPathArray` ?<[Array]<[string]>>
+          - `unique` <[boolean]>
+          - `multiEntry` <[boolean]>
+        - `records` <[Array]<[Object]>>
+          - `key` ?<[Object]>
+          - `keyEncoded` ?<[Object]> if `key` is not JSON-serializable, this contains an encoded version that preserves types.
+          - `value` ?<[Object]>
+          - `valueEncoded` ?<[Object]> if `value` is not JSON-serializable, this contains an encoded version that preserves types.
 
 Learn more about [storage state and auth](../auth.md).
 
@@ -620,6 +639,11 @@ A list of permissions to grant to all pages in this context. See
 
 An object containing additional HTTP headers to be sent with every request. Defaults to none.
 
+## context-option-apiRequestFailsOnErrorStatus
+- `apiRequestFailsOnErrorStatus` <[boolean]> 
+
+An object containing an option to throw an error when API request returns status codes other than 2xx and 3xx. By default, response object is returned for all status codes.
+
 ## context-option-offline
 - `offline` <[boolean]>
 
@@ -672,6 +696,18 @@ Emulates `'forced-colors'` media feature, supported values are `'active'`, `'non
 - `forcedColors` <[ForcedColors]<"active"|"none"|"null">>
 
 Emulates `'forced-colors'` media feature, supported values are `'active'`, `'none'`. See [`method: Page.emulateMedia`] for more details. Passing `'null'` resets emulation to system defaults. Defaults to `'none'`.
+
+## context-option-contrast
+* langs: js, java
+- `contrast` <null|[ForcedColors]<"no-preference"|"more">>
+
+Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See [`method: Page.emulateMedia`] for more details. Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
+
+## context-option-contrast-csharp-python
+* langs: csharp, python
+- `contrast` <[ForcedColors]<"no-preference"|"more"|"null">>
+
+Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See [`method: Page.emulateMedia`] for more details. Passing `'null'` resets emulation to system defaults. Defaults to `'no-preference'`.
 
 ## context-option-logger
 * langs: js
@@ -965,6 +1001,7 @@ between the same pixel in compared images, between zero (strict) and one (lax), 
 - %%-context-option-locale-%%
 - %%-context-option-permissions-%%
 - %%-context-option-extrahttpheaders-%%
+- %%-context-option-apiRequestFailsOnErrorStatus-%%
 - %%-context-option-offline-%%
 - %%-context-option-httpcredentials-%%
 - %%-context-option-colorscheme-%%
@@ -973,6 +1010,8 @@ between the same pixel in compared images, between zero (strict) and one (lax), 
 - %%-context-option-reducedMotion-csharp-python-%%
 - %%-context-option-forcedColors-%%
 - %%-context-option-forcedColors-csharp-python-%%
+- %%-context-option-contrast-%%
+- %%-context-option-contrast-csharp-python-%%
 - %%-context-option-logger-%%
 - %%-context-option-videospath-%%
 - %%-context-option-videosize-%%

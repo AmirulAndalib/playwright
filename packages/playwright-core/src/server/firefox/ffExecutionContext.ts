@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
+import { rewriteErrorMessage } from '../../utils/isomorphic/stackTrace';
+import { parseEvaluationResultValue } from '../isomorphic/utilityScriptSerializers';
 import * as js from '../javascript';
+import { isSessionClosedError } from '../protocolError';
+
 import type { FFSession } from './ffConnection';
 import type { Protocol } from './protocol';
-import { rewriteErrorMessage } from '../../utils/stackTrace';
-import { parseEvaluationResultValue } from '../isomorphic/utilityScriptSerializers';
-import { isSessionClosedError } from '../protocolError';
 
 export class FFExecutionContext implements js.ExecutionContextDelegate {
   _session: FFSession;

@@ -183,6 +183,10 @@ Metadata that will be put directly to the test report serialized as JSON.
 
 Project name is visible in the report and during test execution.
 
+:::warning
+Playwright executes the configuration file multiple times. Do not dynamically produce non-stable values in your configuration.
+:::
+
 ## property: TestProject.snapshotDir
 * since: v1.10
 - type: ?<[string]>
@@ -208,7 +212,7 @@ Here is an example that uses [`method: TestInfo.outputPath`] to create a tempora
 
 ```js
 import { test, expect } from '@playwright/test';
-import fs from 'fs';
+import * as fs from 'fs';
 
 test('example test', async ({}, testInfo) => {
   const file = testInfo.outputPath('temporary-file.txt');

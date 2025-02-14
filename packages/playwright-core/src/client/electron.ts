@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-import type { BrowserWindow } from 'electron';
-import type * as childProcess from 'child_process';
-import type * as structs from '../../types/structs';
-import type * as api from '../../types/types';
-import type * as channels from '@protocol/channels';
-import { TimeoutSettings } from '../common/timeoutSettings';
 import { BrowserContext, prepareBrowserContextParams } from './browserContext';
 import { ChannelOwner } from './channelOwner';
 import { envObjectToArray } from './clientHelper';
+import { ConsoleMessage } from './consoleMessage';
+import { TargetClosedError, isTargetClosedError } from './errors';
 import { Events } from './events';
 import { JSHandle, parseResult, serializeArgument } from './jsHandle';
-import type { Page } from './page';
-import { ConsoleMessage } from './consoleMessage';
-import type { Env, WaitForEventOptions, Headers, BrowserContextOptions } from './types';
 import { Waiter } from './waiter';
-import { TargetClosedError, isTargetClosedError } from './errors';
+import { TimeoutSettings } from '../utils/isomorphic/timeoutSettings';
+
+import type { Page } from './page';
+import type { BrowserContextOptions, Env, Headers, WaitForEventOptions } from './types';
+import type * as structs from '../../types/structs';
+import type * as api from '../../types/types';
+import type * as channels from '@protocol/channels';
+import type * as childProcess from 'child_process';
+import type { BrowserWindow } from 'electron';
 
 type ElectronOptions = Omit<channels.ElectronLaunchOptions, 'env'|'extraHTTPHeaders'|'recordHar'|'colorScheme'|'acceptDownloads'> & {
   env?: Env,
@@ -52,7 +53,7 @@ export class Electron extends ChannelOwner<channels.ElectronChannel> implements 
 
   async launch(options: ElectronOptions = {}): Promise<ElectronApplication> {
     const params: channels.ElectronLaunchParams = {
-      ...await prepareBrowserContextParams(options),
+      ...await prepareBrowserContextParams(this._platform, options),
       env: envObjectToArray(options.env ? options.env : process.env),
       tracesDir: options.tracesDir,
     };
@@ -80,7 +81,7 @@ export class ElectronApplication extends ChannelOwner<channels.ElectronApplicati
     this._channel.on('close', () => {
       this.emit(Events.ElectronApplication.Close);
     });
-    this._channel.on('console', event => this.emit(Events.ElectronApplication.Console, new ConsoleMessage(event)));
+    this._channel.on('console', event => this.emit(Events.ElectronApplication.Console, new ConsoleMessage(this._platform, event)));
     this._setEventToSubscriptionMapping(new Map<string, channels.ElectronApplicationUpdateSubscriptionParams['event']>([
       [Events.ElectronApplication.Console, 'console'],
     ]));

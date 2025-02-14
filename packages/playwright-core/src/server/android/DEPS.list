@@ -3,6 +3,8 @@
 ../../common/
 ../../protocol/
 ../../utils/
+../../utils/isomorphic/
 ../../utilsBundle.ts
 ../chromium/
+../utils
 ../registry/

@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
+import * as path from 'path';
+
+import { noColors } from 'playwright-core/lib/utils';
 import { ms as milliseconds } from 'playwright-core/lib/utilsBundle';
-import path from 'path';
-import { TerminalReporter, formatResultFailure, formatRetry, noColors, stripAnsiEscapes } from './base';
-import type { TestCase, FullResult, TestError } from '../../types/testReporter';
+
+import { TerminalReporter, formatResultFailure, formatRetry, stripAnsiEscapes } from './base';
+
+import type { FullResult, TestCase, TestError } from '../../types/testReporter';
 
 type GitHubLogType = 'debug' | 'notice' | 'warning' | 'error';
 

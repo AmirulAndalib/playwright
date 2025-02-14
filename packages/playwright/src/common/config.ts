@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import type { Config, Fixtures, Project, ReporterDescription } from '../../types/test';
-import type { Location } from '../../types/testReporter';
-import type { TestRunnerPluginRegistration } from '../plugins';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
 import { getPackageJsonPath, mergeObjects } from '../util';
+
+import type { Config, Fixtures, Project, ReporterDescription } from '../../types/test';
+import type { TestRunnerPluginRegistration } from '../plugins';
 import type { Matcher } from '../util';
 import type { ConfigCLIOverrides } from './ipc';
+import type { Location } from '../../types/testReporter';
 import type { FullConfig, FullProject } from '../../types/testReporter';
 
 export type ConfigLocation = {
@@ -76,7 +78,7 @@ export class FullConfigInternal {
     const privateConfiguration = (userConfig as any)['@playwright/test'];
     this.plugins = (privateConfiguration?.plugins || []).map((p: any) => ({ factory: p }));
     this.singleTSConfigPath = pathResolve(configDir, userConfig.tsconfig);
-    this.populateGitInfo = takeFirst(userConfig.populateGitInfo, false);
+    this.populateGitInfo = takeFirst(userConfig.populateGitInfo, defaultPopulateGitInfo);
 
     this.globalSetups = (Array.isArray(userConfig.globalSetup) ? userConfig.globalSetup : [userConfig.globalSetup]).map(s => resolveScript(s, configDir)).filter(script => script !== undefined);
     this.globalTeardowns = (Array.isArray(userConfig.globalTeardown) ? userConfig.globalTeardown : [userConfig.globalTeardown]).map(s => resolveScript(s, configDir)).filter(script => script !== undefined);
@@ -299,6 +301,7 @@ function resolveScript(id: string | undefined, rootDir: string): string | undefi
 
 export const defaultGrep = /.*/;
 export const defaultReporter = process.env.CI ? 'dot' : 'list';
+const defaultPopulateGitInfo = process.env.GITHUB_ACTIONS === 'true';
 
 const configInternalSymbol = Symbol('configInternalSymbol');
 

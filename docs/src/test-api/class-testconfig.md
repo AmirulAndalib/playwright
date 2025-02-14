@@ -291,7 +291,7 @@ Here is an example that uses [`method: TestInfo.outputPath`] to create a tempora
 
 ```js
 import { test, expect } from '@playwright/test';
-import fs from 'fs';
+import * as fs from 'fs';
 
 test('example test', async ({}, testInfo) => {
   const file = testInfo.outputPath('temporary-file.txt');
@@ -333,6 +333,8 @@ This path will serve as the base directory for each test file snapshot directory
 Whether to populate `'git.commit.info'` field of the [`property: TestConfig.metadata`] with Git commit info and CI/CD information.
 
 This information will appear in the HTML and JSON reports and is available in the Reporter API.
+
+On Github Actions, this feature is enabled by default.
 
 **Usage**
 

@@ -2566,6 +2566,12 @@ export interface Page {
     colorScheme?: null|"light"|"dark"|"no-preference";
 
     /**
+     * Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. Passing `null`
+     * disables contrast emulation.
+     */
+    contrast?: null|"no-preference"|"more";
+
+    /**
      * Emulates `'forced-colors'` media feature, supported values are `'active'` and `'none'`. Passing `null` disables
      * forced colors emulation.
      */
@@ -9260,10 +9266,19 @@ export interface BrowserContext {
   setOffline(offline: boolean): Promise<void>;
 
   /**
-   * Returns storage state for this browser context, contains current cookies and local storage snapshot.
+   * Returns storage state for this browser context, contains current cookies, local storage snapshot and IndexedDB
+   * snapshot.
+   *
+   * **NOTE** IndexedDBs with typed arrays are currently not supported.
+   *
    * @param options
    */
   storageState(options?: {
+    /**
+     * Defaults to `true`. Set to `false` to omit IndexedDB from snapshot.
+     */
+    indexedDB?: boolean;
+
     /**
      * The file path to save the storage state to. If
      * [`path`](https://playwright.dev/docs/api/class-browsercontext#browser-context-storage-state-option-path) is a
@@ -9300,6 +9315,50 @@ export interface BrowserContext {
         name: string;
 
         value: string;
+      }>;
+
+      indexedDB: Array<{
+        name: string;
+
+        version: number;
+
+        stores: Array<{
+          name: string;
+
+          keyPath?: string;
+
+          keyPathArray?: Array<string>;
+
+          autoIncrement: boolean;
+
+          indexes: Array<{
+            name: string;
+
+            keyPath?: string;
+
+            keyPathArray?: Array<string>;
+
+            unique: boolean;
+
+            multiEntry: boolean;
+          }>;
+
+          records: Array<{
+            key?: Object;
+
+            /**
+             * if `key` is not JSON-serializable, this contains an encoded version that preserves types.
+             */
+            keyEncoded?: Object;
+
+            value?: Object;
+
+            /**
+             * if `value` is not JSON-serializable, this contains an encoded version that preserves types.
+             */
+            valueEncoded?: Object;
+          }>;
+        }>;
       }>;
     }>;
   }>;
@@ -9684,6 +9743,12 @@ export interface Browser {
     acceptDownloads?: boolean;
 
     /**
+     * An object containing an option to throw an error when API request returns status codes other than 2xx and 3xx. By
+     * default, response object is returned for all status codes.
+     */
+    apiRequestFailsOnErrorStatus?: boolean;
+
+    /**
      * When using [page.goto(url[, options])](https://playwright.dev/docs/api/class-page#page-goto),
      * [page.route(url, handler[, options])](https://playwright.dev/docs/api/class-page#page-route),
      * [page.waitForURL(url[, options])](https://playwright.dev/docs/api/class-page#page-wait-for-url),
@@ -9769,6 +9834,13 @@ export interface Browser {
      * Passing `null` resets emulation to system defaults. Defaults to `'light'`.
      */
     colorScheme?: null|"light"|"dark"|"no-preference";
+
+    /**
+     * Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See
+     * [page.emulateMedia([options])](https://playwright.dev/docs/api/class-page#page-emulate-media) for more details.
+     * Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
+     */
+    contrast?: null|"no-preference"|"more";
 
     /**
      * Specify device scale factor (can be thought of as dpr). Defaults to `1`. Learn more about
@@ -10049,16 +10121,69 @@ export interface Browser {
         sameSite: "Strict"|"Lax"|"None";
       }>;
 
-      /**
-       * localStorage to set for context
-       */
       origins: Array<{
         origin: string;
 
+        /**
+         * localStorage to set for context
+         */
         localStorage: Array<{
           name: string;
 
           value: string;
+        }>;
+
+        /**
+         * indexedDB to set for context
+         */
+        indexedDB?: Array<{
+          /**
+           * database name
+           */
+          name: string;
+
+          /**
+           * database version
+           */
+          version: number;
+
+          stores: Array<{
+            name: string;
+
+            keyPath?: string;
+
+            keyPathArray?: Array<string>;
+
+            autoIncrement: boolean;
+
+            indexes: Array<{
+              name: string;
+
+              keyPath?: string;
+
+              keyPathArray?: Array<string>;
+
+              unique: boolean;
+
+              multiEntry: boolean;
+            }>;
+
+            records: Array<{
+              key?: Object;
+
+              /**
+               * if `key` is not JSON-serializable, this contains an encoded version that preserves types.
+               */
+              keyEncoded?: Object;
+
+              value?: Object;
+
+              /**
+               * if `value` is not JSON-serializable, this contains an encoded version that preserves types.
+               */
+              valueEncoded?: Object;
+            }>;
+          }>;
         }>;
       }>;
     };
@@ -14603,14 +14728,12 @@ export interface BrowserType<Unused = {}> {
    */
   connectOverCDP(options: ConnectOverCDPOptions & { wsEndpoint?: string }): Promise<Browser>;
   /**
-   * This method attaches Playwright to an existing browser instance created via
-   * [browserType.launchServer([options])](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-server).
+   * This method attaches Playwright to an existing browser instance created via `BrowserType.launchServer` in Node.js.
    *
    * **NOTE** The major and minor version of the Playwright instance that connects needs to match the version of
    * Playwright that launches the browser (1.2.3 → is compatible with 1.2.x).
    *
-   * @param wsEndpoint A Playwright browser websocket endpoint to connect to. You obtain this endpoint via
-   * [browserServer.wsEndpoint()](https://playwright.dev/docs/api/class-browserserver#browser-server-ws-endpoint).
+   * @param wsEndpoint A Playwright browser websocket endpoint to connect to. You obtain this endpoint via `BrowserServer.wsEndpoint`.
    * @param options
    */
   connect(wsEndpoint: string, options?: ConnectOptions): Promise<Browser>;
@@ -14621,14 +14744,12 @@ export interface BrowserType<Unused = {}> {
    * @deprecated
    */
   /**
-   * This method attaches Playwright to an existing browser instance created via
-   * [browserType.launchServer([options])](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-server).
+   * This method attaches Playwright to an existing browser instance created via `BrowserType.launchServer` in Node.js.
    *
    * **NOTE** The major and minor version of the Playwright instance that connects needs to match the version of
    * Playwright that launches the browser (1.2.3 → is compatible with 1.2.x).
    *
-   * @param wsEndpoint A Playwright browser websocket endpoint to connect to. You obtain this endpoint via
-   * [browserServer.wsEndpoint()](https://playwright.dev/docs/api/class-browserserver#browser-server-ws-endpoint).
+   * @param wsEndpoint A Playwright browser websocket endpoint to connect to. You obtain this endpoint via `BrowserServer.wsEndpoint`.
    * @param options
    */
   connect(options: ConnectOptions & { wsEndpoint?: string }): Promise<Browser>;
@@ -14690,6 +14811,12 @@ export interface BrowserType<Unused = {}> {
      * Whether to automatically download all the attachments. Defaults to `true` where all the downloads are accepted.
      */
     acceptDownloads?: boolean;
+
+    /**
+     * An object containing an option to throw an error when API request returns status codes other than 2xx and 3xx. By
+     * default, response object is returned for all status codes.
+     */
+    apiRequestFailsOnErrorStatus?: boolean;
 
     /**
      * **NOTE** Use custom browser args at your own risk, as some of them may break Playwright functionality.
@@ -14800,6 +14927,13 @@ export interface BrowserType<Unused = {}> {
      * Passing `null` resets emulation to system defaults. Defaults to `'light'`.
      */
     colorScheme?: null|"light"|"dark"|"no-preference";
+
+    /**
+     * Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See
+     * [page.emulateMedia([options])](https://playwright.dev/docs/api/class-page#page-emulate-media) for more details.
+     * Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
+     */
+    contrast?: null|"no-preference"|"more";
 
     /**
      * Specify device scale factor (can be thought of as dpr). Defaults to `1`. Learn more about
@@ -16575,6 +16709,12 @@ export interface AndroidDevice {
     acceptDownloads?: boolean;
 
     /**
+     * An object containing an option to throw an error when API request returns status codes other than 2xx and 3xx. By
+     * default, response object is returned for all status codes.
+     */
+    apiRequestFailsOnErrorStatus?: boolean;
+
+    /**
      * **NOTE** Use custom browser args at your own risk, as some of them may break Playwright functionality.
      *
      * Additional arguments to pass to the browser instance. The list of Chromium flags can be found
@@ -16612,6 +16752,13 @@ export interface AndroidDevice {
      * Passing `null` resets emulation to system defaults. Defaults to `'light'`.
      */
     colorScheme?: null|"light"|"dark"|"no-preference";
+
+    /**
+     * Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See
+     * [page.emulateMedia([options])](https://playwright.dev/docs/api/class-page#page-emulate-media) for more details.
+     * Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
+     */
+    contrast?: null|"no-preference"|"more";
 
     /**
      * Specify device scale factor (can be thought of as dpr). Defaults to `1`. Learn more about
@@ -17414,6 +17561,12 @@ export interface APIRequest {
    */
   newContext(options?: {
     /**
+     * An object containing an option to throw an error when API request returns status codes other than 2xx and 3xx. By
+     * default, response object is returned for all status codes.
+     */
+    apiRequestFailsOnErrorStatus?: boolean;
+
+    /**
      * Methods like
      * [apiRequestContext.get(url[, options])](https://playwright.dev/docs/api/class-apirequestcontext#api-request-context-get)
      * take the base URL into consideration by using the
@@ -17584,6 +17737,59 @@ export interface APIRequest {
           name: string;
 
           value: string;
+        }>;
+
+        /**
+         * indexedDB to set for context
+         */
+        indexedDB?: Array<{
+          /**
+           * database name
+           */
+          name: string;
+
+          /**
+           * database version
+           */
+          version: number;
+
+          stores: Array<{
+            name: string;
+
+            keyPath?: string;
+
+            keyPathArray?: Array<string>;
+
+            autoIncrement: boolean;
+
+            indexes: Array<{
+              name: string;
+
+              keyPath?: string;
+
+              keyPathArray?: Array<string>;
+
+              unique: boolean;
+
+              multiEntry: boolean;
+            }>;
+
+            records: Array<{
+              key?: Object;
+
+              /**
+               * if `key` is not JSON-serializable, this contains an encoded version that preserves types.
+               */
+              keyEncoded?: Object;
+
+              value?: Object;
+
+              /**
+               * if `value` is not JSON-serializable, this contains an encoded version that preserves types.
+               */
+              valueEncoded?: Object;
+            }>;
+          }>;
         }>;
       }>;
     };
@@ -18358,6 +18564,11 @@ export interface APIRequestContext {
    */
   storageState(options?: {
     /**
+     * Defaults to `true`. Set to `false` to omit IndexedDB from snapshot.
+     */
+    indexedDB?: boolean;
+
+    /**
      * The file path to save the storage state to. If
      * [`path`](https://playwright.dev/docs/api/class-apirequestcontext#api-request-context-storage-state-option-path) is
      * a relative path, then it is resolved relative to current working directory. If no path is provided, storage state
@@ -18393,6 +18604,50 @@ export interface APIRequestContext {
         name: string;
 
         value: string;
+      }>;
+
+      indexedDB: Array<{
+        name: string;
+
+        version: number;
+
+        stores: Array<{
+          name: string;
+
+          keyPath?: string;
+
+          keyPathArray?: Array<string>;
+
+          autoIncrement: boolean;
+
+          indexes: Array<{
+            name: string;
+
+            keyPath?: string;
+
+            keyPathArray?: Array<string>;
+
+            unique: boolean;
+
+            multiEntry: boolean;
+          }>;
+
+          records: Array<{
+            key?: Object;
+
+            /**
+             * if `key` is not JSON-serializable, this contains an encoded version that preserves types.
+             */
+            keyEncoded?: Object;
+
+            value?: Object;
+
+            /**
+             * if `value` is not JSON-serializable, this contains an encoded version that preserves types.
+             */
+            valueEncoded?: Object;
+          }>;
+        }>;
       }>;
     }>;
   }>;
@@ -21305,8 +21560,11 @@ export interface WebError {
 }
 
 /**
- * The [WebSocket](https://playwright.dev/docs/api/class-websocket) class represents websocket connections in the
- * page.
+ * The [WebSocket](https://playwright.dev/docs/api/class-websocket) class represents WebSocket connections within a
+ * page. It provides the ability to inspect and manipulate the data being transmitted and received.
+ *
+ * If you want to intercept or modify WebSocket frames, consider using
+ * [WebSocketRoute](https://playwright.dev/docs/api/class-websocketroute).
  */
 export interface WebSocket {
   /**
@@ -21884,6 +22142,12 @@ export interface BrowserContextOptions {
   acceptDownloads?: boolean;
 
   /**
+   * An object containing an option to throw an error when API request returns status codes other than 2xx and 3xx. By
+   * default, response object is returned for all status codes.
+   */
+  apiRequestFailsOnErrorStatus?: boolean;
+
+  /**
    * When using [page.goto(url[, options])](https://playwright.dev/docs/api/class-page#page-goto),
    * [page.route(url, handler[, options])](https://playwright.dev/docs/api/class-page#page-route),
    * [page.waitForURL(url[, options])](https://playwright.dev/docs/api/class-page#page-wait-for-url),
@@ -21969,6 +22233,13 @@ export interface BrowserContextOptions {
    * Passing `null` resets emulation to system defaults. Defaults to `'light'`.
    */
   colorScheme?: null|"light"|"dark"|"no-preference";
+
+  /**
+   * Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See
+   * [page.emulateMedia([options])](https://playwright.dev/docs/api/class-page#page-emulate-media) for more details.
+   * Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
+   */
+  contrast?: null|"no-preference"|"more";
 
   /**
    * Specify device scale factor (can be thought of as dpr). Defaults to `1`. Learn more about
@@ -22216,16 +22487,69 @@ export interface BrowserContextOptions {
       sameSite: "Strict"|"Lax"|"None";
     }>;
 
-    /**
-     * localStorage to set for context
-     */
     origins: Array<{
       origin: string;
 
+      /**
+       * localStorage to set for context
+       */
       localStorage: Array<{
         name: string;
 
         value: string;
+      }>;
+
+      /**
+       * indexedDB to set for context
+       */
+      indexedDB?: Array<{
+        /**
+         * database name
+         */
+        name: string;
+
+        /**
+         * database version
+         */
+        version: number;
+
+        stores: Array<{
+          name: string;
+
+          keyPath?: string;
+
+          keyPathArray?: Array<string>;
+
+          autoIncrement: boolean;
+
+          indexes: Array<{
+            name: string;
+
+            keyPath?: string;
+
+            keyPathArray?: Array<string>;
+
+            unique: boolean;
+
+            multiEntry: boolean;
+          }>;
+
+          records: Array<{
+            key?: Object;
+
+            /**
+             * if `key` is not JSON-serializable, this contains an encoded version that preserves types.
+             */
+            keyEncoded?: Object;
+
+            value?: Object;
+
+            /**
+             * if `value` is not JSON-serializable, this contains an encoded version that preserves types.
+             */
+            valueEncoded?: Object;
+          }>;
+        }>;
       }>;
     }>;
   };
