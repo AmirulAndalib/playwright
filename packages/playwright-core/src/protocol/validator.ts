@@ -557,7 +557,7 @@ scheme.BrowserTypeLaunchParams = tObject({
   tracesDir: tOptional(tString),
   chromiumSandbox: tOptional(tBoolean),
   firefoxUserPrefs: tOptional(tAny),
-  webSocketPort: tOptional(tNumber),
+  cdpPort: tOptional(tNumber),
   slowMo: tOptional(tNumber),
 });
 scheme.BrowserTypeLaunchResult = tObject({
@@ -587,7 +587,7 @@ scheme.BrowserTypeLaunchPersistentContextParams = tObject({
   tracesDir: tOptional(tString),
   chromiumSandbox: tOptional(tBoolean),
   firefoxUserPrefs: tOptional(tAny),
-  webSocketPort: tOptional(tNumber),
+  cdpPort: tOptional(tNumber),
   noDefaultViewport: tOptional(tBoolean),
   viewport: tOptional(tObject({
     width: tNumber,
@@ -1386,6 +1386,10 @@ scheme.PagePdfParams = tObject({
 scheme.PagePdfResult = tObject({
   pdf: tBinary,
 });
+scheme.PageSnapshotForAIParams = tOptional(tObject({}));
+scheme.PageSnapshotForAIResult = tObject({
+  snapshot: tString,
+});
 scheme.PageStartJSCoverageParams = tObject({
   resetOnNavigation: tOptional(tBoolean),
   reportAnonymousScripts: tOptional(tBoolean),
@@ -1484,9 +1488,7 @@ scheme.FrameAddStyleTagResult = tObject({
 });
 scheme.FrameAriaSnapshotParams = tObject({
   selector: tString,
-  ref: tOptional(tBoolean),
-  emitGeneric: tOptional(tBoolean),
-  mode: tOptional(tEnum(['raw', 'regex'])),
+  forAI: tOptional(tBoolean),
   timeout: tOptional(tNumber),
 });
 scheme.FrameAriaSnapshotResult = tObject({

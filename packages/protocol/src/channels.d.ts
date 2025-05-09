@@ -967,7 +967,7 @@ export type BrowserTypeLaunchParams = {
   tracesDir?: string,
   chromiumSandbox?: boolean,
   firefoxUserPrefs?: any,
-  webSocketPort?: number,
+  cdpPort?: number,
   slowMo?: number,
 };
 export type BrowserTypeLaunchOptions = {
@@ -994,7 +994,7 @@ export type BrowserTypeLaunchOptions = {
   tracesDir?: string,
   chromiumSandbox?: boolean,
   firefoxUserPrefs?: any,
-  webSocketPort?: number,
+  cdpPort?: number,
   slowMo?: number,
 };
 export type BrowserTypeLaunchResult = {
@@ -1024,7 +1024,7 @@ export type BrowserTypeLaunchPersistentContextParams = {
   tracesDir?: string,
   chromiumSandbox?: boolean,
   firefoxUserPrefs?: any,
-  webSocketPort?: number,
+  cdpPort?: number,
   noDefaultViewport?: boolean,
   viewport?: {
     width: number,
@@ -1107,7 +1107,7 @@ export type BrowserTypeLaunchPersistentContextOptions = {
   tracesDir?: string,
   chromiumSandbox?: boolean,
   firefoxUserPrefs?: any,
-  webSocketPort?: number,
+  cdpPort?: number,
   noDefaultViewport?: boolean,
   viewport?: {
     width: number,
@@ -2057,6 +2057,7 @@ export interface PageChannel extends PageEventTarget, EventTargetChannel {
   touchscreenTap(params: PageTouchscreenTapParams, metadata?: CallMetadata): Promise<PageTouchscreenTapResult>;
   accessibilitySnapshot(params: PageAccessibilitySnapshotParams, metadata?: CallMetadata): Promise<PageAccessibilitySnapshotResult>;
   pdf(params: PagePdfParams, metadata?: CallMetadata): Promise<PagePdfResult>;
+  snapshotForAI(params?: PageSnapshotForAIParams, metadata?: CallMetadata): Promise<PageSnapshotForAIResult>;
   startJSCoverage(params: PageStartJSCoverageParams, metadata?: CallMetadata): Promise<PageStartJSCoverageResult>;
   stopJSCoverage(params?: PageStopJSCoverageParams, metadata?: CallMetadata): Promise<PageStopJSCoverageResult>;
   startCSSCoverage(params: PageStartCSSCoverageParams, metadata?: CallMetadata): Promise<PageStartCSSCoverageResult>;
@@ -2497,6 +2498,11 @@ export type PagePdfOptions = {
 export type PagePdfResult = {
   pdf: Binary,
 };
+export type PageSnapshotForAIParams = {};
+export type PageSnapshotForAIOptions = {};
+export type PageSnapshotForAIResult = {
+  snapshot: string,
+};
 export type PageStartJSCoverageParams = {
   resetOnNavigation?: boolean,
   reportAnonymousScripts?: boolean,
@@ -2695,15 +2701,11 @@ export type FrameAddStyleTagResult = {
 };
 export type FrameAriaSnapshotParams = {
   selector: string,
-  ref?: boolean,
-  emitGeneric?: boolean,
-  mode?: 'raw' | 'regex',
+  forAI?: boolean,
   timeout?: number,
 };
 export type FrameAriaSnapshotOptions = {
-  ref?: boolean,
-  emitGeneric?: boolean,
-  mode?: 'raw' | 'regex',
+  forAI?: boolean,
   timeout?: number,
 };
 export type FrameAriaSnapshotResult = {
