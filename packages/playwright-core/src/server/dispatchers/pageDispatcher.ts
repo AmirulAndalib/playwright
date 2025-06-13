@@ -20,12 +20,12 @@ import { parseError } from '../errors';
 import { ArtifactDispatcher } from './artifactDispatcher';
 import { ElementHandleDispatcher } from './elementHandlerDispatcher';
 import { FrameDispatcher } from './frameDispatcher';
-import { parseArgument, serializeResult } from './jsHandleDispatcher';
+import { JSHandleDispatcher, parseArgument, serializeResult } from './jsHandleDispatcher';
 import { RequestDispatcher } from './networkDispatchers';
 import { ResponseDispatcher } from './networkDispatchers';
 import { RouteDispatcher, WebSocketDispatcher } from './networkDispatchers';
 import { WebSocketRouteDispatcher } from './webSocketRouteDispatcher';
-import { createGuid } from '../utils/crypto';
+import { SdkObject } from '../instrumentation';
 import { urlMatches } from '../../utils/isomorphic/urlMatch';
 
 import type { Artifact } from '../artifact';
@@ -238,7 +238,7 @@ export class PageDispatcher extends Dispatcher<Page, channels.PageChannel, Brows
   async close(params: channels.PageCloseParams, metadata: CallMetadata): Promise<void> {
     if (!params.runBeforeUnload)
       metadata.potentiallyClosesScope = true;
-    await this._page.close(metadata, params);
+    await this._page.close(params);
   }
 
   async updateSubscription(params: channels.PageUpdateSubscriptionParams): Promise<void> {
@@ -251,47 +251,52 @@ export class PageDispatcher extends Dispatcher<Page, channels.PageChannel, Brows
   }
 
   async keyboardDown(params: channels.PageKeyboardDownParams, metadata: CallMetadata): Promise<void> {
-    await this._page.keyboard.down(params.key);
+    await this._page.keyboard.down(metadata, params.key);
   }
 
   async keyboardUp(params: channels.PageKeyboardUpParams, metadata: CallMetadata): Promise<void> {
-    await this._page.keyboard.up(params.key);
+    await this._page.keyboard.up(metadata, params.key);
   }
 
   async keyboardInsertText(params: channels.PageKeyboardInsertTextParams, metadata: CallMetadata): Promise<void> {
-    await this._page.keyboard.insertText(params.text);
+    await this._page.keyboard.insertText(metadata, params.text);
   }
 
   async keyboardType(params: channels.PageKeyboardTypeParams, metadata: CallMetadata): Promise<void> {
-    await this._page.keyboard.type(params.text, params);
+    await this._page.keyboard.type(metadata, params.text, params);
   }
 
   async keyboardPress(params: channels.PageKeyboardPressParams, metadata: CallMetadata): Promise<void> {
-    await this._page.keyboard.press(params.key, params);
+    await this._page.keyboard.press(metadata, params.key, params);
   }
 
   async mouseMove(params: channels.PageMouseMoveParams, metadata: CallMetadata): Promise<void> {
-    await this._page.mouse.move(params.x, params.y, params, metadata);
+    metadata.point = { x: params.x, y: params.y };
+    await this._page.mouse.move(metadata, params.x, params.y, params);
   }
 
   async mouseDown(params: channels.PageMouseDownParams, metadata: CallMetadata): Promise<void> {
-    await this._page.mouse.down(params, metadata);
+    metadata.point = this._page.mouse.currentPoint();
+    await this._page.mouse.down(metadata, params);
   }
 
   async mouseUp(params: channels.PageMouseUpParams, metadata: CallMetadata): Promise<void> {
-    await this._page.mouse.up(params, metadata);
+    metadata.point = this._page.mouse.currentPoint();
+    await this._page.mouse.up(metadata, params);
   }
 
   async mouseClick(params: channels.PageMouseClickParams, metadata: CallMetadata): Promise<void> {
-    await this._page.mouse.click(params.x, params.y, params, metadata);
+    metadata.point = { x: params.x, y: params.y };
+    await this._page.mouse.click(metadata, params.x, params.y, params);
   }
 
   async mouseWheel(params: channels.PageMouseWheelParams, metadata: CallMetadata): Promise<void> {
-    await this._page.mouse.wheel(params.deltaX, params.deltaY);
+    await this._page.mouse.wheel(metadata, params.deltaX, params.deltaY);
   }
 
   async touchscreenTap(params: channels.PageTouchscreenTapParams, metadata: CallMetadata): Promise<void> {
-    await this._page.touchscreen.tap(params.x, params.y, metadata);
+    metadata.point = { x: params.x, y: params.y };
+    await this._page.touchscreen.tap(metadata, params.x, params.y);
   }
 
   async accessibilitySnapshot(params: channels.PageAccessibilitySnapshotParams, metadata: CallMetadata): Promise<channels.PageAccessibilitySnapshotResult> {
@@ -399,11 +404,11 @@ export class WorkerDispatcher extends Dispatcher<Worker, channels.WorkerChannel,
   }
 
   async evaluateExpressionHandle(params: channels.WorkerEvaluateExpressionHandleParams, metadata: CallMetadata): Promise<channels.WorkerEvaluateExpressionHandleResult> {
-    return { handle: ElementHandleDispatcher.fromJSHandle(this, await this._object.evaluateExpressionHandle(params.expression, params.isFunction, parseArgument(params.arg))) };
+    return { handle: JSHandleDispatcher.fromJSHandle(this, await this._object.evaluateExpressionHandle(params.expression, params.isFunction, parseArgument(params.arg))) };
   }
 }
 
-export class BindingCallDispatcher extends Dispatcher<{ guid: string }, channels.BindingCallChannel, PageDispatcher | BrowserContextDispatcher> implements channels.BindingCallChannel {
+export class BindingCallDispatcher extends Dispatcher<SdkObject, channels.BindingCallChannel, PageDispatcher | BrowserContextDispatcher> implements channels.BindingCallChannel {
   _type_BindingCall = true;
   private _resolve: ((arg: any) => void) | undefined;
   private _reject: ((error: any) => void) | undefined;
@@ -411,11 +416,11 @@ export class BindingCallDispatcher extends Dispatcher<{ guid: string }, channels
 
   constructor(scope: PageDispatcher, name: string, needsHandle: boolean, source: { context: BrowserContext, page: Page, frame: Frame }, args: any[]) {
     const frameDispatcher = FrameDispatcher.from(scope.parentScope(), source.frame);
-    super(scope, { guid: 'bindingCall@' + createGuid() }, 'BindingCall', {
+    super(scope, new SdkObject(scope._object, 'bindingCall'), 'BindingCall', {
       frame: frameDispatcher,
       name,
       args: needsHandle ? undefined : args.map(serializeResult),
-      handle: needsHandle ? ElementHandleDispatcher.fromJSHandle(frameDispatcher, args[0] as JSHandle) : undefined,
+      handle: needsHandle ? ElementHandleDispatcher.fromJSOrElementHandle(frameDispatcher, args[0] as JSHandle) : undefined,
     });
     this._promise = new Promise((resolve, reject) => {
       this._resolve = resolve;
