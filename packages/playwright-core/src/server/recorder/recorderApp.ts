@@ -103,7 +103,7 @@ export class RecorderApp extends EventEmitter implements IRecorderApp {
   }
 
   private static async _open(recorder: IRecorder, inspectedContext: BrowserContext): Promise<IRecorderApp> {
-    const sdkLanguage = inspectedContext.attribution.playwright.options.sdkLanguage;
+    const sdkLanguage = inspectedContext._browser.sdkLanguage();
     const headed = !!inspectedContext._browser.options.headful;
     const recorderPlaywright = (require('../playwright').createPlaywright as typeof import('../playwright').createPlaywright)({ sdkLanguage: 'javascript', isInternalPlaywright: true });
     const { context, page } = await launchApp(recorderPlaywright.chromium, {
@@ -121,7 +121,7 @@ export class RecorderApp extends EventEmitter implements IRecorderApp {
         timeout: 0,
       }
     });
-    const controller = new ProgressController(serverSideCallMetadata(), context._browser);
+    const controller = new ProgressController(serverSideCallMetadata(), context._browser, 'strict');
     await controller.run(async progress => {
       await context._browser._defaultContext!._loadDefaultContextAsIs(progress);
     });

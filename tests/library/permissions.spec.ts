@@ -16,6 +16,7 @@
  */
 
 import { contextTest as it, expect } from '../config/browserTest';
+import { hostPlatform } from '../../packages/playwright-core/src/server/utils/hostPlatform';
 
 function getPermission(page, name) {
   return page.evaluate(name => navigator.permissions.query({ name }).then(result => result.state), name);
@@ -31,6 +32,7 @@ it.describe('permissions', () => {
 
   it('should deny permission when not listed', async ({ page, context, server, browserName, isMac, macVersion }) => {
     it.skip(browserName === 'webkit' && isMac && macVersion === 13, 'WebKit on macOS 13 is frozen.');
+    it.skip(hostPlatform.startsWith('debian11'), 'WebKit on Debian 11 is frozen.');
 
     await page.goto(server.EMPTY_PAGE);
     await context.grantPermissions([], { origin: server.EMPTY_PAGE });
@@ -134,6 +136,7 @@ it.describe('permissions', () => {
 
   it('should isolate permissions between browser contexts', async ({ server, browser, browserName, isMac, macVersion }) => {
     it.skip(browserName === 'webkit' && isMac && macVersion === 13, 'WebKit on macOS 13 is frozen.');
+    it.skip(hostPlatform.startsWith('debian11'), 'WebKit on Debian 11 is frozen.');
 
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -232,4 +235,20 @@ it('storage access', {
   const access = await frame.evaluate(() => document.requestStorageAccess().then(() => true, () => false));
   expect(access).toBe(true);
   expect(await frame.evaluate(() => document.hasStorageAccess())).toBe(true);
+});
+
+it.describe(() => {
+  // Secure context
+  it.use({ ignoreHTTPSErrors: true, });
+
+  it('should be able to use the local-fonts API', async ({ page, context, httpsServer, browserName }) => {
+    it.skip(browserName !== 'chromium', 'chromium-only api');
+    it.info().annotations.push({ type: 'issue', description: 'https://github.com/microsoft/playwright/issues/36113' });
+
+    await page.goto(httpsServer.EMPTY_PAGE);
+    expect(await getPermission(page, 'local-fonts')).toBe('prompt');
+    await context.grantPermissions(['local-fonts']);
+    expect(await getPermission(page, 'local-fonts')).toBe('granted');
+    expect(await page.evaluate(async () => (await (window as any).queryLocalFonts()).length > 0)).toBe(true);
+  });
 });
